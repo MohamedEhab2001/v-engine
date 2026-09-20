@@ -1,31 +1,60 @@
 {
-  "name": "scaffold",
+  "name": "arabic-chat-video",
   "version": "1.0.0",
-  "description": "My Remotion video",
+  "description": "Arabic-first deterministic chat-story video template engine (Remotion)",
   "repository": {},
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.526",
+    "@remotion/fonts": "4.0.526",
+    "better-sqlite3": "^11.8.1",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.1",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "googleapis": "^144.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.526",
-    "@remotion/tailwind-v4": "4.0.526",
-    "tailwindcss": "4.0.0"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.526",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.18.1",
+    "@types/node": "^20.17.0",
     "@types/react": "19.2.7",
+    "@types/react-dom": "^19.3.0",
     "@types/web": "0.0.166",
+    "concurrently": "^9.1.2",
     "eslint": "9.19.0",
     "prettier": "3.8.1",
-    "typescript": "5.9.3"
+    "tsx": "^4.19.3",
+    "typescript": "5.9.3",
+    "vite": "^6.4.3"
   },
   "scripts": {
     "dev": "remotion studio",
+    "dev:server": "tsx server/index.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "lint": "eslint src && tsc",
+    "render": "remotion render ChatStoryVideo out/video.mp4",
+    "make": "node scripts/make-video.mjs",
+    "timeline": "esbuild scripts/print-timeline.ts --bundle --platform=node --format=cjs --outfile=out/print-timeline.cjs --log-level=error && node out/print-timeline.cjs",
+    "assets": "node scripts/make-sounds.mjs && node scripts/make-sample-image.mjs",
+    "build:publish-ui": "esbuild src/publishing/main.tsx --bundle --outfile=server/public/app.js --loader:.tsx=tsx --define:PUBLISHING_API_URL=\"\\\"\\\"\" --minify",
+    "lint:server": "tsc -p tsconfig.server.json",
+    "lint:publishing": "tsc -p tsconfig.publishing.json",
+    "dev:local": "tsx local/index.ts",
+    "build:local-ui": "esbuild src/local-ui/main.tsx --bundle --outfile=local/public/app.js --loader:.tsx=tsx --minify",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist-server/index.cjs --packages=external",
+    "start:server": "node dist-server/index.cjs"
   },
   "sideEffects": [
     "*.css"
