@@ -3,7 +3,7 @@ import type { CompiledScreen } from "../compiler/compile-screens";
 import type { MessageScreen as MessageScreenData } from "../schema/video";
 import { panel, theme } from "../theme/theme";
 import { SpeakerHeader } from "./SpeakerHeader";
-import { DiscordMessage } from "./DiscordMessage";
+import { SlackMessage } from "./SlackMessage";
 
 // One speaking turn = one screen (spec §2–§3, §38). The speaker identity
 // appears once; every message renders as its own container; all containers
@@ -44,7 +44,7 @@ export const MessageScreen: React.FC<{
         }}
       >
         {compiled.timedMessages.map((timed) => (
-          <DiscordMessage
+          <SlackMessage
             key={timed.startFrame}
             timed={timed}
             speakerName={compiled.person?.name ?? screen.speaker}

@@ -6,8 +6,8 @@ import type { FormInteractionScreen } from "../schema/video";
 import {
   formLayout,
   formTypography,
+  mainColumnWidth,
   panel,
-  panelWidth,
 } from "../theme/theme";
 import { PANEL_MAX_HEIGHT, PANEL_MIN_HEIGHT, type PanelLayout } from "../message/panel-layout";
 
@@ -17,7 +17,7 @@ const clamp = (value: number, min: number, max: number): number =>
 const CHAR_WIDTH_RATIO = 0.52;
 
 const textWidth =
-  panelWidth -
+  mainColumnWidth -
   panel.contentPaddingX * 2 -
   formLayout.cardPadding * 2 -
   formLayout.inputPaddingX * 2;

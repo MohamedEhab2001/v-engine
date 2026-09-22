@@ -3,7 +3,7 @@ import { useCurrentFrame } from "remotion";
 import { interpolate } from "remotion";
 import type { CompiledScreen } from "../compiler/compile-screens";
 import type { CallScreen as CallScreenData } from "../schema/video";
-import { discordLikeTheme as discord } from "../theme/theme";
+import { slackTheme as discord } from "../theme/theme";
 import { typography } from "../theme/typography";
 import { Avatar } from "./Avatar";
 

@@ -9,16 +9,24 @@ import {
   getVideoEndFade,
 } from "../animation/presets";
 import {
-  discordLikeTheme as discord,
+  slackTheme as discord,
   panelRegionHeightPx,
 } from "../theme/theme";
 import { ambienceVolumeAt } from "../message/audio-direction";
-import { getCameraKeyFrame, getCameraState } from "../message/camera-presets";
+import {
+  composeCameraStates,
+  getCameraKeyFrame,
+  getCameraState,
+  getMessageZoomState,
+  MESSAGE_ZOOM_FRAMES,
+} from "../message/camera-presets";
 import { Hook } from "../components/Hook";
-import { DiscordFrame } from "../components/DiscordFrame";
+import { SlackFrame } from "../components/SlackFrame";
+import type { ChannelRailItem } from "../components/SlackSidebar";
 import { ScreenTransition } from "../components/ScreenTransition";
 import { MessageScreen } from "../components/MessageScreen";
 import { GroupEventScreen } from "../components/GroupEventScreen";
+import { ChannelCreateScreen } from "../components/ChannelCreateScreen";
 import { MediaScreen } from "../components/MediaScreen";
 import { TimePassageScreen } from "../components/TimePassageScreen";
 import { FormInteractionScreen } from "../components/FormInteractionScreen";
@@ -32,6 +40,26 @@ import { video } from "../videos/current-video";
 const compiled = compileScreens(video);
 
 const panelEnterFrame = Math.max(0, timing.firstScreenDelayFrames - 2);
+
+// Sidebar rail data: one entry per channel, in the order it first becomes
+// active — the very first channel is present from the start (frame 0), any
+// later channel pops in exactly when its channel-create screen starts.
+const channelRail: ChannelRailItem[] = (() => {
+  const seen = new Set<string>();
+  const items: ChannelRailItem[] = [];
+  for (const screen of compiled.screens) {
+    if (!screen.channelKey || !screen.channel || seen.has(screen.channelKey)) {
+      continue;
+    }
+    seen.add(screen.channelKey);
+    items.push({
+      key: screen.channelKey,
+      channel: screen.channel,
+      introducedAtFrame: items.length === 0 ? 0 : screen.startFrame,
+    });
+  }
+  return items;
+})();
 
 const renderScreen = (active: CompiledScreen): React.ReactNode => {
   const screen = active.screen;
@@ -51,6 +79,16 @@ const renderScreen = (active: CompiledScreen): React.ReactNode => {
       />
     );
   }
+  if (screen.type === "channel-create") {
+    return active.channel ? (
+      <ChannelCreateScreen
+        channel={active.channel}
+        channelKey={active.channelKey ?? screen.channel}
+        eventText={active.eventText ?? ""}
+        timestamp={screen.timestamp}
+      />
+    ) : null;
+  }
   if (screen.type === "form-interaction") {
     return <FormInteractionScreen compiled={active} />;
   }
@@ -68,7 +106,8 @@ const renderScreen = (active: CompiledScreen): React.ReactNode => {
 
 const scaleFromFor = (active: CompiledScreen): number | undefined =>
   active.screen.type === "group-event" ||
-  active.screen.type === "time-passage"
+  active.screen.type === "time-passage" ||
+  active.screen.type === "channel-create"
     ? 0.94
     : undefined;
 
@@ -106,19 +145,41 @@ const frameGeometry = (
 };
 
 // Camera direction (spec §48): explicit screen camera → beat preset →
-// static; reacts to the screen's key message.
+// static; reacts to the screen's key message. Channel-create screens don't
+// carry a story beat (they're a system moment) but still get a directed
+// camera — the "channel-focus" push toward the sidebar reveal.
 const cameraFor = (active: CompiledScreen, frame: number) => {
-  const preset = active.beat?.camera ?? "static";
+  const preset =
+    active.screen.type === "channel-create"
+      ? "channel-focus"
+      : (active.beat?.camera ?? "static");
   const keyFrame = getCameraKeyFrame(
     active.timedMessages.map((m) => m.enterFrame),
     active.timedMessages.map((m) => m.message.state ?? "normal"),
   );
-  return getCameraState(
+  const base = getCameraState(
     preset,
     frame,
     active.startFrame,
     active.endFrame,
     keyFrame,
+  );
+
+  // Per-message zoom (schema: message.zoom) punctuates the screen's own
+  // camera direction rather than replacing it — first flagged message
+  // whose window is currently active wins (never stack two pushes).
+  const zoomedMessage = active.timedMessages.find(
+    (timed) =>
+      timed.message.zoom &&
+      frame - timed.enterFrame >= 0 &&
+      frame - timed.enterFrame < MESSAGE_ZOOM_FRAMES,
+  );
+  if (!zoomedMessage) {
+    return base;
+  }
+  return composeCameraStates(
+    base,
+    getMessageZoomState(frame - zoomedMessage.enterFrame),
   );
 };
 
@@ -149,6 +210,12 @@ export const ChatStoryVideo: React.FC = () => {
     : 0;
 
   const { height, top } = frameGeometry(panelScreens, frame);
+
+  // The topmost (incoming) panel screen directs the header/sidebar, same
+  // convention the camera already uses for the two-screen overlap case.
+  const topPanelScreen = panelScreens[panelScreens.length - 1] ?? null;
+  const activeChannelKey = topPanelScreen?.channelKey ?? channelRail[0]?.key ?? null;
+  const activeChannel = topPanelScreen?.channel ?? channelRail[0]?.channel ?? null;
 
   const endFade = getVideoEndFade(
     frame,
@@ -192,11 +259,15 @@ export const ChatStoryVideo: React.FC = () => {
           <Hook text={video.hook.text} highlights={video.hook.highlights} />
 
           <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-            <DiscordFrame
+            <SlackFrame
               height={height}
               top={top}
               enterFrame={panelEnterFrame}
               opacity={panelOpacity}
+              workspaceName={video.workspaceName}
+              channelRail={channelRail}
+              activeChannelKey={activeChannelKey}
+              activeChannel={activeChannel}
             >
               {panelScreens.map((active) => (
                 <ScreenTransition
@@ -210,7 +281,7 @@ export const ChatStoryVideo: React.FC = () => {
                   {renderScreen(active)}
                 </ScreenTransition>
               ))}
-            </DiscordFrame>
+            </SlackFrame>
 
             {passageScreens.map((active) => (
               <ScreenTransition

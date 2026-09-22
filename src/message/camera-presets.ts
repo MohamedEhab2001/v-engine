@@ -2,7 +2,7 @@
 // zoom beyond readability, never move Arabic text outside the safe area,
 // never stack strong effects. Pure functions of the frame.
 
-import { interpolate } from "remotion";
+import { Easing, interpolate } from "remotion";
 import type { CameraPreset } from "../schema/video";
 
 export type CameraState = {
@@ -30,7 +30,27 @@ export const getCameraKeyFrame = (
   return enterFrames[enterFrames.length - 1];
 };
 
-export const getCameraState = (
+// Deterministic "someone is holding this camera" idle sway — layered under
+// every preset so even "static" never reads as a dead, locked-off frame.
+// Two sine waves at different frequencies/phases keep X and Y from moving
+// in lockstep; amplitude stays tiny so Arabic text never blurs or drifts
+// out of the safe area.
+const idleDrift = (frame: number): CameraState => ({
+  scale: 1 + Math.sin(frame / 97) * 0.0015,
+  translateX: Math.sin(frame / 61) * 1.5,
+  translateY: Math.cos(frame / 83) * 1.2,
+});
+
+const withIdleDrift = (state: CameraState, frame: number): CameraState => {
+  const drift = idleDrift(frame);
+  return {
+    scale: state.scale * drift.scale,
+    translateX: state.translateX + drift.translateX,
+    translateY: state.translateY + drift.translateY,
+  };
+};
+
+const resolveCameraState = (
   preset: CameraPreset,
   frame: number,
   screenStart: number,
@@ -111,8 +131,73 @@ export const getCameraState = (
       };
     }
 
+    case "channel-focus":
+      // A slightly larger, slower push used for the channel-create reveal —
+      // the sidebar icon and the centered card are both the point of
+      // interest, so the push is a touch stronger than "slow-push".
+      return {
+        scale: interpolate(
+          frame,
+          [screenStart, screenEnd],
+          [1, 1.03],
+          { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+        ),
+        translateX: interpolate(
+          frame,
+          [screenStart, screenEnd],
+          [0, 4],
+          { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+        ),
+        translateY: interpolate(
+          frame,
+          [screenStart, screenEnd],
+          [0, 8],
+          { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+        ),
+      };
+
     case "static":
     default:
       return IDENTITY;
   }
 };
+
+export const getCameraState = (
+  preset: CameraPreset,
+  frame: number,
+  screenStart: number,
+  screenEnd: number,
+  keyFrame: number | null,
+): CameraState =>
+  withIdleDrift(
+    resolveCameraState(preset, frame, screenStart, screenEnd, keyFrame),
+    frame,
+  );
+
+// ---- Per-message zoom (schema: message.zoom) ----
+// A deliberate push-in for the one line in a screen worth a camera
+// reaction — ramps in, holds through the reading beat, eases back out.
+// Composed ON TOP of whatever the screen's own camera state already is
+// (multiplicative scale, additive translate), same pattern as idle drift,
+// so it never replaces the screen's direction — it punctuates it.
+export const MESSAGE_ZOOM_FRAMES = 46;
+
+export const getMessageZoomState = (localFrame: number): CameraState => {
+  if (localFrame < 0 || localFrame >= MESSAGE_ZOOM_FRAMES) {
+    return IDENTITY;
+  }
+  const keyframes = [0, 10, 30, MESSAGE_ZOOM_FRAMES];
+  const easing = { easing: Easing.out(Easing.cubic) };
+  const clampBoth = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
+  return {
+    scale: interpolate(localFrame, keyframes, [1, 1.09, 1.09, 1], { ...clampBoth, ...easing }),
+    translateX: 0,
+    translateY: interpolate(localFrame, keyframes, [0, 10, 10, 0], { ...clampBoth, ...easing }),
+  };
+};
+
+export const composeCameraStates = (a: CameraState, b: CameraState): CameraState => ({
+  scale: a.scale * b.scale,
+  translateX: a.translateX + b.translateX,
+  translateY: a.translateY + b.translateY,
+});

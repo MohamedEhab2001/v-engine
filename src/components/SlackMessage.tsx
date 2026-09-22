@@ -4,7 +4,7 @@ import { interpolate } from "remotion";
 import type { CompiledTimedMessage } from "../compiler/compile-screens";
 import type { MessageEditAction } from "../schema/video";
 import { getMessageEffectStyle } from "../message/message-effects";
-import { discordLikeTheme as discord, theme } from "../theme/theme";
+import { slackTheme as discord, theme } from "../theme/theme";
 import { typography } from "../theme/typography";
 import { HighlightText } from "./HighlightText";
 import { TypingIndicator } from "./TypingIndicator";
@@ -12,13 +12,14 @@ import { MessageReply } from "./MessageReply";
 import { MessageReaction } from "./MessageReaction";
 import { MessageAttachmentView } from "./MessageAttachment";
 
-// One message = one Discord-style container with a full lifecycle (spec
+// One message = one flat Slack-style row with a full lifecycle (spec
 // §3–§18): optional typing indicator → reply context + message + attachment
-// → reactions / edits / deletes. The container never gets destroyed; edits
-// and deletes transform it in place.
+// → reactions / edits / deletes. The row never gets destroyed; edits and
+// deletes transform it in place. Slack rows have no per-message card
+// background — only a left accent bar marks emphasis states.
 const accentColor = (accent: string): string | null => {
   if (accent === "warning") {
-    return "#F0B232";
+    return discord.warning;
   }
   if (accent === "positive") {
     return discord.positive;
@@ -29,7 +30,7 @@ const accentColor = (accent: string): string | null => {
   return null;
 };
 
-export const DiscordMessage: React.FC<{
+export const SlackMessage: React.FC<{
   timed: CompiledTimedMessage;
   speakerName: string;
 }> = ({ timed, speakerName }) => {
@@ -59,7 +60,7 @@ export const DiscordMessage: React.FC<{
     presentation.animation,
   );
 
-  // While typing, the container shows the indicator in place of the text.
+  // While typing, the row shows the indicator in place of the text.
   const visibleOpacity = beforeEnter ? 1 : effect.opacity;
   const textOpacity = deleted
     ? interpolate(frame - (deleteAction?.at ?? 0), [0, 6], [1, 0], {
@@ -99,12 +100,9 @@ export const DiscordMessage: React.FC<{
       dir="rtl"
       style={{
         position: "relative",
-        backgroundColor: "rgba(255, 255, 255, 0.025)",
-        borderRadius: 12,
         paddingTop: theme.messagePaddingY,
         paddingBottom: theme.messagePaddingY,
-        paddingLeft: theme.messagePaddingX,
-        paddingRight: theme.messagePaddingX,
+        paddingRight: 16,
         opacity: visibleOpacity,
         transform:
           beforeEnter
@@ -117,8 +115,8 @@ export const DiscordMessage: React.FC<{
         <div
           style={{
             position: "absolute",
-            top: 10,
-            bottom: 10,
+            top: 4,
+            bottom: 4,
             right: 0,
             width: 5,
             borderRadius: 3,

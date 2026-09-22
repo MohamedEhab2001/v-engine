@@ -10,6 +10,19 @@ export type Person = {
   gender?: "m" | "f";
 };
 
+// ---------- Channels (Slack-style workspace) ----------
+
+export type Channel = {
+  /** Channel name without the leading '#', e.g. "performance-review". */
+  name: string;
+  /** Short subtitle shown under the header name. */
+  topic?: string;
+  /** Single emoji or letter shown on the sidebar rail. */
+  icon?: string;
+  /** Sidebar icon tint; falls back to a deterministic hash color. */
+  color?: string;
+};
+
 export type MessageState =
   | "normal"
   | "question"
@@ -39,6 +52,7 @@ export type SoundPreset =
   | "join"
   | "leave"
   | "swoosh"
+  | "channel-open"
   | "none";
 
 export type AnimationPreset =
@@ -75,6 +89,9 @@ export type DiscordMessageData = {
     sound?: SoundPreset | "auto";
     animation?: AnimationPreset | "auto";
   };
+  /** Camera pushes in on this message when it appears — for the one line
+   * in the screen that's worth a deliberate zoom (a reveal, a gut-punch). */
+  zoom?: boolean;
 };
 
 // ---------- Message lifecycle (spec §3–§13) ----------
@@ -188,7 +205,8 @@ export type CameraPreset =
   | "focus-message"
   | "focus-attachment"
   | "micro-punch"
-  | "micro-shake";
+  | "micro-shake"
+  | "channel-focus";
 
 export type NotificationOverlay = {
   type: "notification";
@@ -210,6 +228,8 @@ export type PresenceState =
 export type MessageScreen = {
   type: "messages";
   speaker: string;
+  /** Channel key; omitted → stays on whatever channel is currently active. */
+  channel?: string;
   /** Screen-level story beat — directs timing, camera, and audio. */
   beat?: StoryBeat;
   timestamp?: string;
@@ -244,6 +264,20 @@ export type MediaScreen = {
   durationFrames: number;
   fit?: "cover" | "contain";
   muted?: boolean;
+};
+
+// ---------- Channel creation (cinematic "new channel" moment) ----------
+
+export type ChannelCreateScreen = {
+  type: "channel-create";
+  /** Channel key into ChatVideo.channels — becomes the active channel. */
+  channel: string;
+  /** person key who created/opened the channel. */
+  by?: string;
+  /** Short Arabic line, e.g. "علشان كلام خاص". */
+  reason?: string;
+  timestamp?: string;
+  durationFrames?: number;
 };
 
 // ---------- Time passage (cinematic transition screen) ----------
@@ -362,7 +396,8 @@ export type VideoScreen =
   | TimePassageScreen
   | FormInteractionScreen
   | CallScreen
-  | PresenceScreen;
+  | PresenceScreen
+  | ChannelCreateScreen;
 
 export type ChatVideo = {
   id: string;
@@ -377,6 +412,12 @@ export type ChatVideo = {
     text: string;
     highlights?: string[];
   };
+
+  /** Small workspace glyph label shown at the top of the sidebar rail. */
+  workspaceName: string;
+
+  /** Channels available in this workspace, keyed by id. */
+  channels: Record<string, Channel>;
 
   people: Record<string, Person>;
 

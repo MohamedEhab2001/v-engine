@@ -3,7 +3,7 @@
 // so the compiler and the renderer agree on layout deterministically.
 
 import type { MessageScreen } from "../schema/video";
-import { panel, panelWidth, theme } from "../theme/theme";
+import { mainColumnWidth, panel, theme } from "../theme/theme";
 
 export const PANEL_MIN_HEIGHT = 360;
 export const PANEL_MAX_HEIGHT = 1050;
@@ -20,7 +20,7 @@ const clamp = (value: number, min: number, max: number): number =>
 const CHAR_WIDTH_RATIO = 0.52;
 
 const messageTextWidth =
-  panelWidth -
+  mainColumnWidth -
   panel.contentPaddingX * 2 -
   theme.messagePaddingX * 2;
 
@@ -101,7 +101,7 @@ export const calculateMessagePanelLayout = (
 export const calculateGroupEventPanelLayout = (
   eventText: string,
 ): PanelLayout => {
-  const textWidth = panelWidth - theme.eventBodyPadding * 2 - 60;
+  const textWidth = mainColumnWidth - theme.eventBodyPadding * 2 - 60;
   const textRows = Math.max(
     1,
     Math.min(

@@ -3,24 +3,78 @@ import { useCurrentFrame } from "remotion";
 import { interpolate } from "remotion";
 import type { CompiledScreen } from "../compiler/compile-screens";
 import type { PresenceScreen as PresenceScreenData, PresenceState } from "../schema/video";
-import { discordLikeTheme as discord, theme } from "../theme/theme";
+import { slackTheme as discord, theme } from "../theme/theme";
 import { typography } from "../theme/typography";
+import { Avatar } from "./Avatar";
 
-// Presence screen (spec §21, §44): a subtle standalone status change —
-// "أحمد أصبح غير متصل" — with a status-colored dot. Used after strong
-// story moments.
-const statusColor: Record<PresenceState, string> = {
-  online: discord.positive,
-  idle: "#F0B232",
-  offline: discord.mutedText,
-  dnd: discord.danger,
-};
-
+// Presence screen — a Slack-style status badge on the person's avatar (spec
+// §21, §44): filled green for active, a hollow ring for away, a red dash
+// glyph for do-not-disturb, and no badge at all for offline — matching
+// Slack's real presence language — plus the Arabic status sentence below.
 const statusText: Record<PresenceState, string> = {
   online: "متصل الآن",
   idle: "بعيد عن الكيبورد",
   offline: "غير متصل",
   dnd: "مشغول",
+};
+
+const PresenceBadge: React.FC<{ status: PresenceState }> = ({ status }) => {
+  const size = 40;
+  const ringWidth = 5;
+
+  if (status === "offline") {
+    return null;
+  }
+
+  if (status === "idle") {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          border: `${ringWidth}px solid ${discord.mutedText}`,
+          backgroundColor: discord.chatBackground,
+        }}
+      />
+    );
+  }
+
+  if (status === "dnd") {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          backgroundColor: discord.danger,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            width: size * 0.5,
+            height: 5,
+            borderRadius: 3,
+            backgroundColor: "#FFFFFF",
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        backgroundColor: discord.positive,
+      }}
+    />
+  );
 };
 
 export const PresenceScreen: React.FC<{
@@ -36,6 +90,8 @@ export const PresenceScreen: React.FC<{
     extrapolateRight: "clamp",
   });
 
+  const person = compiled.person ?? { name: screen.person };
+
   return (
     <div
       style={{
@@ -50,14 +106,23 @@ export const PresenceScreen: React.FC<{
         opacity,
       }}
     >
-      <div
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: "50%",
-          backgroundColor: statusColor[screen.status],
-        }}
-      />
+      <div style={{ position: "relative", lineHeight: 0 }}>
+        <Avatar person={person} personId={screen.person} size={theme.eventAvatarSize} squared />
+
+        <div
+          style={{
+            position: "absolute",
+            right: -6,
+            bottom: -6,
+            padding: 4,
+            borderRadius: "50%",
+            backgroundColor: discord.chatBackground,
+            lineHeight: 0,
+          }}
+        >
+          <PresenceBadge status={screen.status} />
+        </div>
+      </div>
 
       <div
         dir="rtl"
@@ -71,7 +136,7 @@ export const PresenceScreen: React.FC<{
           unicodeBidi: "plaintext",
         }}
       >
-        {compiled.person?.name ?? screen.person}{" "}
+        {person.name}{" "}
         {compiled.person?.gender === "f" ? "أصبحت" : "أصبح"} {statusText[screen.status]}
       </div>
 

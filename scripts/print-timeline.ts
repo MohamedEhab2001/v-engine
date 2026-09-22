@@ -68,6 +68,10 @@ for (const screen of compiled.screens) {
     console.log(
       `screen ${screen.index}  presence   frames ${screen.startFrame} → ${screen.endFrame}  ${screen.screen.person} → ${screen.screen.status}`,
     );
+  } else if (screen.screen.type === "channel-create") {
+    console.log(
+      `screen ${screen.index}  channel-create frames ${screen.startFrame} → ${screen.endFrame}  panel=${screen.panelHeight}px  "${screen.eventText}"`,
+    );
   } else {
     console.log(
       `screen ${screen.index}  ${screen.screen.mediaType.padEnd(11)} frames ${screen.startFrame} → ${screen.endFrame}  panel=${screen.panelHeight}px  ${screen.screen.src}`,

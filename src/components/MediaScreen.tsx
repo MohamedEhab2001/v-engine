@@ -2,7 +2,7 @@ import React from "react";
 import { Img, OffthreadVideo, staticFile } from "remotion";
 import type { CompiledScreen } from "../compiler/compile-screens";
 import type { MediaScreen as MediaScreenData } from "../schema/video";
-import { discordLikeTheme as discord } from "../theme/theme";
+import { slackTheme as discord } from "../theme/theme";
 
 // Media screen (migration spec §38): image or video filling the panel
 // content area with cover/contain fit. It transitions like every other

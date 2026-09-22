@@ -3,7 +3,9 @@
 // heights. Pure — no React, no DOM — runnable in plain Node.
 
 import type {
+  ChannelCreateScreen,
   ChatVideo,
+  Channel,
   GroupEventScreen,
   Person,
   VideoScreen,
@@ -62,6 +64,10 @@ export type CompiledScreen = {
   byPerson: Person | null;
   /** Group-event screens: the full Arabic event sentence. */
   eventText: string | null;
+  /** Resolved active channel for this screen (messages / channel-create). */
+  channel: Channel | null;
+  /** Resolved active channel key. */
+  channelKey: string | null;
 };
 
 export type CompiledVideo = {
@@ -98,9 +104,23 @@ export const groupEventText = (
   }
 };
 
+// Arabic "channel created" sentence for the channel-create screen.
+export const channelCreateText = (
+  screen: ChannelCreateScreen,
+  channel: Channel,
+  byPerson: Person | null,
+): string =>
+  byPerson
+    ? `${byPerson.name} ${byPerson.gender === "f" ? "فتحت" : "فتح"} قناة #${channel.name}`
+    : `تم إنشاء قناة #${channel.name}`;
+
 // Simple readable validation (spec §41, §48, §62) — warnings, not a framework.
 const validateVideo = (video: ChatVideo): string[] => {
   const issues: string[] = [];
+
+  if (Object.keys(video.channels).length === 0) {
+    issues.push("video: at least one channel is required in `channels`");
+  }
 
   video.screens.forEach((screen, index) => {
     const label = `screen ${index} (${screen.type})`;
@@ -109,6 +129,11 @@ const validateVideo = (video: ChatVideo): string[] => {
       if (!video.people[screen.speaker]) {
         issues.push(
           `${label}: speaker "${screen.speaker}" is not defined in people`,
+        );
+      }
+      if (screen.channel && !video.channels[screen.channel]) {
+        issues.push(
+          `${label}: channel "${screen.channel}" is not defined in channels`,
         );
       }
       if (screen.messages.length === 0) {
@@ -208,6 +233,17 @@ const validateVideo = (video: ChatVideo): string[] => {
           `${label}: person "${screen.person}" is not defined in people`,
         );
       }
+    } else if (screen.type === "channel-create") {
+      if (!video.channels[screen.channel]) {
+        issues.push(
+          `${label}: channel "${screen.channel}" is not defined in channels`,
+        );
+      }
+      if (screen.by && !video.people[screen.by]) {
+        issues.push(
+          `${label}: by "${screen.by}" is not defined in people`,
+        );
+      }
     } else {
       if (!screen.src) {
         issues.push(`${label}: media screen has no src`);
@@ -231,6 +267,10 @@ export const compileScreens = (video: ChatVideo): CompiledVideo => {
   // enters after a short delay.
   const firstStart = timing.firstScreenDelayFrames;
   let cursor = firstStart;
+
+  // The workspace's first declared channel is active until a screen says
+  // otherwise (spec: explicit `channel` → last active channel → first key).
+  let activeChannelKey: string | null = Object.keys(video.channels)[0] ?? null;
 
   const screens: CompiledScreen[] = video.screens.map((screen, index) => {
     const isLast = index === video.screens.length - 1;
@@ -267,9 +307,31 @@ export const compileScreens = (video: ChatVideo): CompiledVideo => {
     let panelHeight: number;
     let form: CompiledForm | null = null;
 
+    // Resolve the active channel BEFORE building this screen: a
+    // channel-create screen switches immediately (it IS the switch), a
+    // messages screen with an explicit `channel` switches too, everything
+    // else just carries the channel forward.
+    if (screen.type === "channel-create" && video.channels[screen.channel]) {
+      activeChannelKey = screen.channel;
+    } else if (
+      screen.type === "messages" &&
+      screen.channel &&
+      video.channels[screen.channel]
+    ) {
+      activeChannelKey = screen.channel;
+    }
+    const channelKey = activeChannelKey;
+    const channel = channelKey ? (video.channels[channelKey] ?? null) : null;
+
     if (screen.type === "messages") {
       person = video.people[screen.speaker] ?? { name: screen.speaker };
       panelHeight = calculateMessagePanelLayout(screen).panelHeight;
+    } else if (screen.type === "channel-create") {
+      byPerson = screen.by ? (video.people[screen.by] ?? { name: screen.by }) : null;
+      eventText = channel
+        ? channelCreateText(screen, channel, byPerson)
+        : `تم إنشاء قناة #${screen.channel}`;
+      panelHeight = calculateGroupEventPanelLayout(eventText).panelHeight;
     } else if (screen.type === "group-event") {
       person = video.people[screen.person] ?? { name: screen.person };
       byPerson = screen.by ? (video.people[screen.by] ?? { name: screen.by }) : null;
@@ -342,6 +404,8 @@ export const compileScreens = (video: ChatVideo): CompiledVideo => {
       person,
       byPerson,
       eventText,
+      channel,
+      channelKey,
     };
   });
 

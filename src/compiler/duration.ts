@@ -20,6 +20,12 @@ export type ScreenMotion = {
 };
 
 export const screenMotion = (screen: VideoScreen): ScreenMotion => {
+  if (screen.type === "channel-create") {
+    return {
+      enterFrames: timing.channelCreateTiming.enterFrames,
+      exitFrames: timing.channelCreateTiming.exitFrames,
+    };
+  }
   if (
     screen.type === "group-event" ||
     screen.type === "time-passage" ||
@@ -74,6 +80,11 @@ export const computeScreenDuration = (
 
   if (screen.type === "presence") {
     const hold = (screen.delayFrames ?? 0) + timing.eventHoldFrames;
+    return enterFrames + Math.max(1, hold) + tailFrames;
+  }
+
+  if (screen.type === "channel-create") {
+    const hold = screen.durationFrames ?? timing.channelCreateTiming.holdFrames;
     return enterFrames + Math.max(1, hold) + tailFrames;
   }
 

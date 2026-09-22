@@ -80,6 +80,13 @@ export const audioPresets = {
     src: "sounds/leave.wav",
     volume: 0.28,
   },
+
+  // Reuses the join chime at a slightly higher volume — a new channel
+  // "arriving" reads the same as a person arriving.
+  "channel-open": {
+    src: "sounds/join.wav",
+    volume: 0.34,
+  },
 };
 
 // Screen transitions keep the swoosh subtle.

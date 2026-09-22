@@ -2,7 +2,7 @@ import React from "react";
 import { Img, staticFile, useCurrentFrame } from "remotion";
 import { interpolate } from "remotion";
 import type { MessageAttachment } from "../schema/video";
-import { discordLikeTheme as discord } from "../theme/theme";
+import { slackTheme as discord } from "../theme/theme";
 import { typography } from "../theme/typography";
 
 // Attachments (spec §14–§18): rich content INSIDE the message container —
@@ -10,12 +10,12 @@ import { typography } from "../theme/typography";
 
 const documentColor = (icon?: string): string => {
   if (icon === "pdf") {
-    return "#ED4245";
+    return discord.danger;
   }
   if (icon === "doc") {
-    return "#5865F2";
+    return discord.accent;
   }
-  return "#949BA4";
+  return discord.mutedText;
 };
 
 const formatDuration = (seconds: number): string => {

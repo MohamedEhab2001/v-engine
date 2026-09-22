@@ -4,15 +4,15 @@ import type { CompiledScreen } from "../compiler/compile-screens";
 import type { TimePassageScreen as TimePassageScreenData } from "../schema/video";
 import { timing } from "../animation/timings";
 import {
-  discordLikeTheme as discord,
+  slackTheme as discord,
   timePassageTheme,
 } from "../theme/theme";
 import { typography } from "../theme/typography";
 
-// Standalone cinematic time-passage screen (spec §3, §5–§7): centered,
-// dark, large Arabic label, subtle icon — no UI chrome. Rendered full-screen
-// outside the Discord frame.
-const ClockIcon: React.FC<{ angle: number }> = ({ angle }) => {
+// Cinematic time-passage screen, styled after Slack's date divider
+// ("──── Today ────") blown up to full-bleed scale: a thin line on either
+// side of a centered pill. Rendered full-screen outside the chat frame.
+const ClockGlyph: React.FC<{ angle: number }> = ({ angle }) => {
   const size = timePassageTheme.iconSize;
   return (
     <div
@@ -22,7 +22,7 @@ const ClockIcon: React.FC<{ angle: number }> = ({ angle }) => {
         borderRadius: "50%",
         border: `${timePassageTheme.iconLineWidth}px solid ${discord.secondaryText}`,
         position: "relative",
-        opacity: 0.9,
+        flexShrink: 0,
       }}
     >
       <div
@@ -31,7 +31,7 @@ const ClockIcon: React.FC<{ angle: number }> = ({ angle }) => {
           left: "50%",
           top: "50%",
           width: timePassageTheme.iconLineWidth,
-          height: size * 0.34,
+          height: size * 0.32,
           backgroundColor: discord.secondaryText,
           borderRadius: 3,
           transformOrigin: "50% 0%",
@@ -43,8 +43,8 @@ const ClockIcon: React.FC<{ angle: number }> = ({ angle }) => {
           position: "absolute",
           left: "50%",
           top: "50%",
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           borderRadius: "50%",
           backgroundColor: discord.secondaryText,
           transform: "translate(-50%, -50%)",
@@ -53,6 +53,16 @@ const ClockIcon: React.FC<{ angle: number }> = ({ angle }) => {
     </div>
   );
 };
+
+const DividerLine: React.FC = () => (
+  <div
+    style={{
+      flex: 1,
+      height: 1,
+      backgroundColor: discord.separator,
+    }}
+  />
+);
 
 export const TimePassageScreen: React.FC<{
   compiled: CompiledScreen;
@@ -63,7 +73,8 @@ export const TimePassageScreen: React.FC<{
   const style = screen.style ?? "minimal";
   const local = frame - compiled.startFrame;
 
-  // Calendar style: cycle through dates quickly, then reveal the label.
+  // Calendar style: cycle through dates inside the pill, then settle on
+  // the final label (same pill, content crossfades — no layout jump).
   const perDate = timing.timePassageTiming.calendarDateFrames;
   const dates = style === "calendar" ? (screen.dates ?? []) : [];
   const cycleStart = 2;
@@ -72,13 +83,12 @@ export const TimePassageScreen: React.FC<{
     dates.length - 1,
     Math.max(0, Math.floor((local - cycleStart) / perDate)),
   );
-  const dateFade = interpolate(
-    (local - cycleStart - dateIndex * perDate) % perDate,
-    [0, 2],
-    [0, 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-
+  const cyclingOpacity = dates.length
+    ? interpolate(local - cycleEnd, [0, 4], [1, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      })
+    : 0;
   const labelOpacity = dates.length
     ? interpolate(local - cycleEnd, [0, 5], [0, 1], {
         extrapolateLeft: "clamp",
@@ -98,53 +108,83 @@ export const TimePassageScreen: React.FC<{
         position: "absolute",
         inset: 0,
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 38,
         padding: 60,
       }}
     >
-      {dates.length > 0 ? (
-        <div
-          style={{
-            height: timePassageTheme.dateFontSize * 1.5,
-            display: "flex",
-            alignItems: "center",
-            opacity: dateFade,
-          }}
-        >
-          <span
-            dir="rtl"
-            style={{
-              fontFamily: typography.family,
-              fontWeight: 600,
-              fontSize: timePassageTheme.dateFontSize,
-              color: discord.secondaryText,
-              unicodeBidi: "plaintext",
-            }}
-          >
-            {dates[dateIndex]}
-          </span>
-        </div>
-      ) : (
-        <ClockIcon angle={handAngle} />
-      )}
-
       <div
-        dir="rtl"
         style={{
-          fontFamily: typography.family,
-          fontWeight: 700,
-          fontSize: timePassageTheme.labelFontSize,
-          lineHeight: 1.35,
-          color: discord.primaryText,
-          textAlign: "center",
-          unicodeBidi: "plaintext",
-          opacity: labelOpacity,
+          width: timePassageTheme.dividerWidth,
+          maxWidth: "100%",
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 24,
         }}
       >
-        {screen.label}
+        <DividerLine />
+
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 14,
+            flexShrink: 0,
+            backgroundColor: discord.secondaryBackground,
+            border: `1px solid ${discord.separator}`,
+            borderRadius: timePassageTheme.pillRadius,
+            paddingTop: timePassageTheme.pillPaddingY,
+            paddingBottom: timePassageTheme.pillPaddingY,
+            paddingLeft: timePassageTheme.pillPaddingX,
+            paddingRight: timePassageTheme.pillPaddingX,
+          }}
+        >
+          {style === "clock" ? <ClockGlyph angle={handAngle} /> : null}
+
+          <div style={{ position: "relative" }}>
+            {dates.length > 0 ? (
+              <span
+                dir="rtl"
+                style={{
+                  position: labelOpacity > 0 ? "absolute" : "static",
+                  right: 0,
+                  fontFamily: typography.family,
+                  fontWeight: 600,
+                  fontSize: timePassageTheme.dateFontSize,
+                  color: discord.secondaryText,
+                  unicodeBidi: "plaintext",
+                  opacity: cyclingOpacity,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {dates[dateIndex]}
+              </span>
+            ) : null}
+
+            <span
+              dir="rtl"
+              style={{
+                position: dates.length > 0 && labelOpacity === 0 ? "absolute" : "static",
+                right: 0,
+                fontFamily: typography.family,
+                fontWeight: 700,
+                fontSize: timePassageTheme.labelFontSize,
+                lineHeight: 1.3,
+                color: discord.primaryText,
+                unicodeBidi: "plaintext",
+                opacity: labelOpacity,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {screen.label}
+            </span>
+          </div>
+        </div>
+
+        <DividerLine />
       </div>
     </div>
   );

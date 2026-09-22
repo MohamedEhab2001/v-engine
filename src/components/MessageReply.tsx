@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
 import { interpolate } from "remotion";
-import { discordLikeTheme as discord } from "../theme/theme";
+import { slackTheme as discord } from "../theme/theme";
 import { typography } from "../theme/typography";
 
 // Reply context (spec §9–§10): thin line, small name, compact preview —

@@ -1,6 +1,6 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { discordLikeTheme as discord } from "../theme/theme";
+import { slackTheme as discord } from "../theme/theme";
 import { typography } from "../theme/typography";
 
 // Typing indicator (spec §5–§7): three dots cycling subtly, or a

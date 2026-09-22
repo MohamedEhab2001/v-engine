@@ -28,6 +28,14 @@ export const timing = {
   eventHoldFrames: 42,
   eventExitFrames: 6,
 
+  // Channel-create screens — a slightly longer cinematic beat than a group
+  // event: sidebar icon pop-in + centered card both need to read (~2.2s).
+  channelCreateTiming: {
+    enterFrames: 8,
+    holdFrames: 58,
+    exitFrames: 8,
+  },
+
   // Time passage screens — short cinematic beats (~1.3s total).
   timePassageTiming: {
     enterFrames: 6,

@@ -1,6 +1,6 @@
 import React from "react";
 import type { GroupEventType } from "../schema/video";
-import { discordLikeTheme as discord, theme } from "../theme/theme";
+import { slackTheme as discord, theme } from "../theme/theme";
 import { typography } from "../theme/typography";
 import { Avatar } from "./Avatar";
 

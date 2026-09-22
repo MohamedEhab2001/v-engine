@@ -14,6 +14,21 @@ export const video: ChatVideo = {
         highlights: ["Performance Review", "متقررة"],
     },
 
+    workspaceName: "FUC company",
+
+    channels: {
+        "performance-review": {
+            name: "performance-review",
+            topic: "تقييم الأداء السنوي",
+            icon: "📋",
+        },
+        "hr-private": {
+            name: "hr-private",
+            topic: "خاص — HR فقط",
+            icon: "🔒",
+        },
+    },
+
     people: {
         ahmed: {
             name: "أحمد",
@@ -270,6 +285,7 @@ export const video: ChatVideo = {
                     state: "shock",
                     highlights: ["3 من 5"],
                     holdAfterFrames: 40,
+                    zoom: true,
                 },
             ],
         },
@@ -446,6 +462,7 @@ export const video: ChatVideo = {
                     state: "reveal",
                     highlights: ["محدش بياخد 5"],
                     holdAfterFrames: 35,
+                    zoom: true,
                 },
             ],
         },
@@ -463,8 +480,15 @@ export const video: ChatVideo = {
         },
 
         // ====================================================
-        // ACT 5 — HR gets added
+        // ACT 5 — HR gets added (a new private channel opens)
         // ====================================================
+
+        {
+            type: "channel-create",
+            channel: "hr-private",
+            by: "mahmoud",
+            timestamp: "2:08 م",
+        },
 
         {
             type: "group-event",

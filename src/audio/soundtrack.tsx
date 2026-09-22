@@ -108,6 +108,11 @@ export const collectSoundCues = (compiled: CompiledVideo): SoundCue[] => {
     } else if (screen.type === "group-event") {
       const eventPreset = groupEventPresets[screen.event];
       push(eventPreset.sound, compiledScreen.startFrame, eventPreset.volume);
+    } else if (screen.type === "channel-create") {
+      // Transition swoosh, then the channel "arrives" a few frames later —
+      // mirrors how group-event join sounds land after their entrance.
+      push("swoosh", compiledScreen.startFrame, screenTransitionVolume);
+      push("channel-open", compiledScreen.startFrame + 6);
     } else if (screen.type === "time-passage") {
       // Sound begins exactly when the screen enters (spec §9).
       const sound =
